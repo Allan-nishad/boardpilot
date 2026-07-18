@@ -14,10 +14,24 @@ import {
   Sparkles,
   Download
 } from "lucide-react";
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 export default function ExecutiveMemo() {
-  
+  const [apiData, setApiData] = useState<any>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedResponse = window.localStorage.getItem("boardpilot_api_response");
+      if (savedResponse) {
+        try {
+          setApiData(JSON.parse(savedResponse));
+        } catch (e) {
+          console.error("Failed to parse boardpilot_api_response", e);
+        }
+      }
+    }
+  }, []);
+
   const sectionsVariants = {
     hidden: { opacity: 0 },
     show: {
@@ -32,6 +46,35 @@ export default function ExecutiveMemo() {
     hidden: { opacity: 0, y: 10 },
     show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 100 } }
   };
+
+  // Default values if no API data is present
+  const decisionText = apiData?.decision || "The Board strongly recommends proceeding with the European Union regional expansion in Q3. Latency and data residency constraints are addressed by directing capital reserves toward localized Frankfurt edge-replication database replica nodes, bypassing transatlantic overhead.";
+  const confidenceScore = apiData?.confidence || 89;
+  const risksList = apiData?.risks || [
+    "Evolving GDPR AI data weight processing boundaries may force localized model siloing.",
+    "Overhead increases by €14.5K/month, compressing runway from 18 to 16.5 months."
+  ];
+  const nextStepsList = apiData?.next_steps || [
+    "Configure Frankfurt Sync Nodes: CTO to initiate database read-replicas cluster deployment to resolve the latency bottleneck.",
+    "Amortize R&D Capital Reserve: CFO to transfer €8K from latent R&D capital arrays to fund initial edge cluster server overhead.",
+    "Initiate Closed Pilot onboarding: CPO/CMO to onboard initial 14 DACH pilot accounts under GDPR data-consent transparency gates."
+  ];
+
+  const agentVotes = apiData?.agents?.map((agent: any) => ({
+    name: agent.name || `${agent.role} Agent`,
+    vote: agent.vote || "YES"
+  })) || [
+    { name: "CEO Jenkins", vote: "YES" },
+    { name: "CFO Wright", vote: "YES" },
+    { name: "CTO Thorne", vote: "CONDITIONAL" },
+    { name: "CMO Novak", vote: "YES" },
+    { name: "CPO Rostova", vote: "YES" },
+    { name: "CRO Vance", vote: "NO" }
+  ];
+
+  // Find blind spot text
+  const blindSpotAgent = apiData?.agents?.find((a: any) => a.role === "Blind Spot");
+  const blindSpotText = blindSpotAgent?.analysis || "**Defensive Moat Risk**: Frankfurt edge nodes address latency, but do not protect against competitor duplication. Competitors replicating this setup within 6 months could prompt pricing compression.";
 
   return (
     <div className="w-full bg-glass-intense rounded-3xl p-6 md:p-8 shadow-2xl border border-slate-900 relative overflow-hidden font-sans text-left">
@@ -59,11 +102,11 @@ export default function ExecutiveMemo() {
         {/* Monospaced Meta Block */}
         <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[9px] font-mono text-slate-500 border-l md:border-l border-slate-900 pl-0 md:pl-6">
           <div>DOC INDEX:</div>
-          <div className="text-white font-bold">BP-MEMO-2026-92A</div>
+          <div className="text-white font-bold">{apiData ? "BP-MEMO-LIVE-SWARM" : "BP-MEMO-2026-92A"}</div>
           <div>TIMESTAMP:</div>
-          <div className="text-slate-400">2026-07-18 10:12 GMT</div>
+          <div className="text-slate-400">{apiData ? "Just Now" : "2026-07-18 10:12 GMT"}</div>
           <div>SWARM ENGINE:</div>
-          <div className="text-slate-400">OpenSwarm Core v1.0</div>
+          <div className="text-slate-400">{apiData ? "Gemini 2.5 Flash Compat" : "OpenSwarm Core v1.0"}</div>
           <div>SECURITY LOCK:</div>
           <div className="text-indigo-400/90 font-bold">SHA256://8a2c41f9e80b</div>
         </div>
@@ -88,10 +131,10 @@ export default function ExecutiveMemo() {
             </span>
             <div className="rounded-2xl border border-slate-900 bg-slate-950/40 p-4.5">
               <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 px-2 py-0.5 border border-emerald-500/20 rounded">
-                Consensus APPROVED (89%)
+                Consensus APPROVED ({confidenceScore}%)
               </span>
               <p className="text-xs text-slate-300 leading-relaxed font-sans mt-3">
-                The Board strongly recommends proceeding with the **European Union regional expansion in Q3**. Latency and data residency constraints are addressed by directing capital reserves toward localized Frankfurt edge-replication database replica nodes, bypassing transatlantic overhead.
+                {decisionText}
               </p>
             </div>
           </motion.div>
@@ -103,24 +146,17 @@ export default function ExecutiveMemo() {
               2. Evaluated Risk Vectors
             </span>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-slate-950/20 border border-slate-900 rounded-xl p-3.5 flex items-start gap-2.5">
-                <Lock className="h-4 w-4 text-rose-400 flex-shrink-0 mt-0.5" />
-                <div className="flex flex-col gap-0.5">
-                  <h4 className="text-[11px] font-bold text-slate-200">Compliance Volatility</h4>
-                  <p className="text-[10px] text-slate-500 leading-relaxed">
-                    Evolving GDPR AI data weight processing boundaries may force localized model siloing.
-                  </p>
+              {risksList.slice(0, 4).map((risk: string, i: number) => (
+                <div key={i} className="bg-slate-950/20 border border-slate-900 rounded-xl p-3.5 flex items-start gap-2.5">
+                  <Lock className="h-4 w-4 text-rose-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex flex-col gap-0.5">
+                    <h4 className="text-[11px] font-bold text-slate-200">Risk Vector {i+1}</h4>
+                    <p className="text-[10px] text-slate-500 leading-relaxed">
+                      {risk}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="bg-slate-950/20 border border-slate-900 rounded-xl p-3.5 flex items-start gap-2.5">
-                <TrendingUp className="h-4 w-4 text-rose-400 flex-shrink-0 mt-0.5" />
-                <div className="flex flex-col gap-0.5">
-                  <h4 className="text-[11px] font-bold text-slate-200">Runway Compression</h4>
-                  <p className="text-[10px] text-slate-500 leading-relaxed">
-                    Overhead increases by €14.5K/month, compressing runway from 18 to 16.5 months.
-                  </p>
-                </div>
-              </div>
+              ))}
             </div>
           </motion.div>
 
@@ -131,42 +167,25 @@ export default function ExecutiveMemo() {
               3. Proposed Next Actions
             </span>
             <div className="rounded-2xl border border-slate-900 bg-slate-950/20 p-4.5 flex flex-col gap-3">
-              <div className="flex items-start gap-3">
-                <input 
-                  type="checkbox" 
-                  defaultChecked 
-                  disabled
-                  className="h-4 w-4 rounded border-slate-800 bg-slate-900 text-indigo-500 focus:ring-0 mt-0.5 accent-indigo-500" 
-                />
-                <div className="flex flex-col">
-                  <span className="text-xs text-slate-300 font-bold leading-tight">Configure Frankfurt Sync Nodes</span>
-                  <p className="text-[10px] text-slate-500 mt-0.5">CTO to initiate database read-replicas cluster deployment to resolve the latency bottleneck.</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <input 
-                  type="checkbox" 
-                  defaultChecked 
-                  disabled
-                  className="h-4 w-4 rounded border-slate-800 bg-slate-900 text-indigo-500 focus:ring-0 mt-0.5 accent-indigo-500" 
-                />
-                <div className="flex flex-col">
-                  <span className="text-xs text-slate-300 font-bold leading-tight">Amortize R&D Capital Reserve</span>
-                  <p className="text-[10px] text-slate-500 mt-0.5">CFO to transfer €8K from latent R&D capital arrays to fund initial edge cluster server overhead.</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <input 
-                  type="checkbox" 
-                  className="h-4 w-4 rounded border-slate-850 bg-slate-900 text-indigo-500 focus:ring-0 mt-0.5 accent-indigo-500 cursor-pointer" 
-                />
-                <div className="flex flex-col">
-                  <span className="text-xs text-slate-300 font-bold leading-tight">Initiate Closed Pilot onboarding</span>
-                  <p className="text-[10px] text-slate-550 mt-0.5">CPO/CMO to onboard initial 14 DACH pilot accounts under GDPR data-consent transparency gates.</p>
-                </div>
-              </div>
+              {nextStepsList.map((step: string, i: number) => {
+                const parts = step.split(":");
+                const heading = parts.length > 1 ? parts[0] : `Action Item ${i+1}`;
+                const detail = parts.length > 1 ? parts[1] : step;
+                return (
+                  <div key={i} className="flex items-start gap-3">
+                    <input 
+                      type="checkbox" 
+                      defaultChecked={i === 0}
+                      disabled
+                      className="h-4 w-4 rounded border-slate-800 bg-slate-900 text-indigo-500 focus:ring-0 mt-0.5 accent-indigo-500" 
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-xs text-slate-300 font-bold leading-tight">{heading}</span>
+                      <p className="text-[10px] text-slate-500 mt-0.5">{detail}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </motion.div>
 
@@ -200,7 +219,7 @@ export default function ExecutiveMemo() {
                     fill="transparent" 
                     strokeDasharray="251.2"
                     initial={{ strokeDashoffset: 251.2 }}
-                    animate={{ strokeDashoffset: 251.2 - (251.2 * 89) / 100 }}
+                    animate={{ strokeDashoffset: 251.2 - (251.2 * confidenceScore) / 100 }}
                     transition={{ duration: 1, ease: "easeOut" }}
                   />
                   <defs>
@@ -211,7 +230,7 @@ export default function ExecutiveMemo() {
                   </defs>
                 </svg>
                 <div className="absolute flex flex-col items-center justify-center">
-                  <span className="text-2xl font-black font-mono text-white leading-none">89%</span>
+                  <span className="text-2xl font-black font-mono text-white leading-none">{confidenceScore}%</span>
                   <span className="text-[8px] uppercase tracking-wider font-mono text-slate-500 mt-1 font-bold">Consensus</span>
                 </div>
               </div>
@@ -231,30 +250,14 @@ export default function ExecutiveMemo() {
                 <span>EXECUTIVE NODE</span>
                 <span>VOTE</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400">CEO Jenkins</span>
-                <span className="text-emerald-400 font-bold">YES</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400">CFO Wright</span>
-                <span className="text-emerald-400 font-bold">YES</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400">CTO Thorne</span>
-                <span className="text-amber-400 font-bold">CONDITIONAL</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400">CMO Novak</span>
-                <span className="text-emerald-400 font-bold">YES</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400">CPO Rostova</span>
-                <span className="text-emerald-400 font-bold">YES</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400">CRO Vance</span>
-                <span className="text-rose-400 font-bold">NO</span>
-              </div>
+              {agentVotes.map((av: any, i: number) => (
+                <div key={i} className="flex justify-between items-center">
+                  <span className="text-slate-400">{av.name}</span>
+                  <span className={`font-bold ${av.vote.toUpperCase() === "YES" ? "text-emerald-400" : av.vote.toUpperCase() === "NO" ? "text-rose-400" : "text-amber-400"}`}>
+                    {av.vote.toUpperCase()}
+                  </span>
+                </div>
+              ))}
             </div>
           </motion.div>
 
@@ -266,7 +269,7 @@ export default function ExecutiveMemo() {
             </span>
             <div className="rounded-2xl border border-indigo-500/20 bg-indigo-950/10 p-4.5">
               <p className="text-[10px] text-slate-300 leading-relaxed font-sans">
-                **Defensive Moat Risk**: Frankfurt edge nodes address latency, but do not protect against competitor duplication. Competitors replicating this setup within 6 months could prompt pricing compression.
+                {blindSpotText}
               </p>
             </div>
           </motion.div>

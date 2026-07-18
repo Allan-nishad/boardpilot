@@ -28,3 +28,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python env and local secrets
+venv/
+.env
+backend/.env
+**/venv/
+**/.env

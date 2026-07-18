@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowLeft, 
   Activity, 
@@ -23,18 +23,76 @@ export default function DashboardPage() {
   const router = useRouter();
   const [decisionText, setDecisionText] = useState(MOCK_PROPOSAL.title);
   const [riskAlignment, setRiskAlignment] = useState(MOCK_PROPOSAL.riskAlignment);
+  const [proposal, setProposal] = useState(MOCK_PROPOSAL);
+  const [executives, setExecutives] = useState(MOCK_EXECUTIVES);
   const [selectedExecutiveId, setSelectedExecutiveId] = useState("CEO");
+  const [activeTab, setActiveTab] = useState<"memo" | "swarm" | "matrix">("memo");
 
   // Read custom proposal context from local storage if available
   useEffect(() => {
     if (typeof window !== "undefined") {
       const savedDecision = window.localStorage.getItem("boardpilot_decision");
       const savedRisk = window.localStorage.getItem("boardpilot_risk");
+      const savedResponse = window.localStorage.getItem("boardpilot_api_response");
+      
       if (savedDecision) {
         setDecisionText(savedDecision);
       }
       if (savedRisk) {
         setRiskAlignment(savedRisk.toUpperCase());
+      }
+      
+      if (savedResponse) {
+        try {
+          const apiData = JSON.parse(savedResponse);
+          
+          setProposal({
+            title: savedDecision || apiData.decision,
+            riskAlignment: (savedRisk || "BALANCED").toUpperCase(),
+            consensusScore: apiData.confidence,
+            voteCount: `${apiData.agents.filter((a: any) => a.vote.toUpperCase() === 'YES' || a.vote.toUpperCase() === 'CONDITIONAL').length} YES • ${apiData.agents.filter((a: any) => a.vote.toUpperCase() === 'NO').length} NO`,
+            timestamp: "Just Now"
+          });
+
+          // Map agents to executives format
+          const mappedExecs = apiData.agents.map((agent: any) => {
+            let avatar = "💼";
+            if (agent.role === "CFO") avatar = "📈";
+            else if (agent.role === "CTO") avatar = "🤖";
+            else if (agent.role === "Marketing") avatar = "🎯";
+            else if (agent.role === "Risk") avatar = "🛡️";
+            else if (agent.role === "Blind Spot") avatar = "🔍";
+
+            return {
+              id: agent.role,
+              name: agent.name || `${agent.role} Agent`,
+              role: `${agent.role} Agent`,
+              avatar: avatar,
+              status: agent.vote === "No" ? "Flagged Risks" : "Analyzed",
+              vote: agent.vote || "Yes",
+              confidence: agent.confidence || 85,
+              summary: agent.analysis
+            };
+          });
+
+          // Ensure CEO node is present
+          if (!mappedExecs.some((e: any) => e.id === "CEO")) {
+            mappedExecs.unshift({
+              id: "CEO",
+              name: "Sarah Jenkins",
+              role: "CEO Swarm",
+              avatar: "💼",
+              status: "Analyzed",
+              vote: "Yes",
+              confidence: 95,
+              summary: apiData.decision
+            });
+          }
+
+          setExecutives(mappedExecs);
+        } catch (e) {
+          console.error("Failed to load live response data", e);
+        }
       }
     }
   }, []);
@@ -43,9 +101,12 @@ export default function DashboardPage() {
     if (typeof window !== "undefined") {
       window.localStorage.removeItem("boardpilot_decision");
       window.localStorage.removeItem("boardpilot_risk");
+      window.localStorage.removeItem("boardpilot_api_response");
     }
     router.push("/decision");
   };
+
+  const selectedExec = executives.find((e: any) => e.id === selectedExecutiveId) || executives[0];
 
   return (
     <div className="min-h-screen bg-board-dark text-slate-100 flex flex-col font-sans bg-grid-pattern relative">
@@ -80,7 +141,7 @@ export default function DashboardPage() {
               </span>
               <span className="h-1.5 w-1.5 rounded-full bg-slate-800" />
               <span className="text-[9px] font-mono font-bold uppercase text-slate-400">
-                Consensus: <span className="text-white font-bold">{MOCK_PROPOSAL.consensusScore}% ({MOCK_PROPOSAL.voteCount})</span>
+                Consensus: <span className="text-white font-bold">{proposal.consensusScore}% ({proposal.voteCount})</span>
               </span>
             </div>
 
@@ -106,63 +167,151 @@ export default function DashboardPage() {
           </div>
         </motion.div>
 
+        {/* 1.5. Highlighted Recommendation Banner */}
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="rounded-3xl border border-indigo-500/20 bg-indigo-950/10 p-5 md:p-6 text-left"
+        >
+          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-400 block mb-1">
+            ⚡ Swipe Swarm Resolution Verdict
+          </span>
+          <p className="text-xs md:text-sm text-slate-200 font-sans leading-relaxed">
+            {proposal.title}
+          </p>
+        </motion.div>
+
+        {/* Tab Navigation */}
+        <div className="flex gap-1 md:gap-3 border-b border-slate-900/60 pb-px overflow-x-auto scrollbar-none">
+          <button
+            onClick={() => setActiveTab("memo")}
+            className={`py-3 px-4 md:px-6 text-xs font-bold font-mono uppercase tracking-wider border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === "memo"
+                ? "border-indigo-500 text-white"
+                : "border-transparent text-slate-500 hover:text-slate-300"
+            }`}
+          >
+            📋 Memo Verdict
+          </button>
+          <button
+            onClick={() => setActiveTab("swarm")}
+            className={`py-3 px-4 md:px-6 text-xs font-bold font-mono uppercase tracking-wider border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === "swarm"
+                ? "border-indigo-500 text-white"
+                : "border-transparent text-slate-500 hover:text-slate-300"
+            }`}
+          >
+            👥 Swarm Debate
+          </button>
+          <button
+            onClick={() => setActiveTab("matrix")}
+            className={`py-3 px-4 md:px-6 text-xs font-bold font-mono uppercase tracking-wider border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === "matrix"
+                ? "border-indigo-500 text-white"
+                : "border-transparent text-slate-500 hover:text-slate-300"
+            }`}
+          >
+            📊 Voting Matrix
+          </button>
+        </div>
+
         {/* 2. Main Two-Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          {/* Left Column (2/3 width) - Grid, Matrix, Memo */}
-          <div className="lg:col-span-8 flex flex-col gap-8">
+          {/* Left Column (2/3 width) - Tab Panels */}
+          <div className="lg:col-span-8 flex flex-col gap-6">
             
-            {/* Executive Cards Header */}
-            <div className="flex items-center justify-between pb-2 border-b border-slate-900/60">
-              <div className="flex items-center gap-2">
-                <Users className="h-4.5 w-4.5 text-indigo-400" />
-                <h3 className="text-xs uppercase font-mono font-bold text-slate-400 tracking-wider">
-                  Executive Swarm breakdown
-                </h3>
-              </div>
-              <span className="text-[10px] font-mono text-slate-500">
-                Click cards to review alignment
-              </span>
-            </div>
+            {activeTab === "memo" && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full">
+                <ExecutiveMemo />
+              </motion.div>
+            )}
 
-            {/* Grid of 7 Cards */}
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4.5"
-            >
-              {MOCK_EXECUTIVES.map((exec) => (
-                <ExecutiveCard
-                  key={exec.id}
-                  name={exec.name}
-                  icon={exec.avatar}
-                  status={exec.status}
-                  vote={exec.vote}
-                  confidence={exec.confidence}
-                  summary={exec.summary}
-                  isSelected={selectedExecutiveId === exec.id}
-                  onSelect={() => setSelectedExecutiveId(exec.id)}
-                />
-              ))}
-              
-              {/* Visual space filler card to balance grid */}
-              <div className="hidden lg:flex items-center justify-center border border-dashed border-slate-900/40 rounded-2xl p-5 text-center min-h-[190px] opacity-40">
-                <span className="text-[10px] font-mono text-slate-655 uppercase">
-                  OpenSwarm Core
-                </span>
-              </div>
-            </motion.div>
+            {activeTab === "matrix" && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full">
+                <VotingMatrix />
+              </motion.div>
+            )}
 
-            {/* Voting Matrix Table */}
-            <div className="w-full">
-              <VotingMatrix />
-            </div>
+            {activeTab === "swarm" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-6 w-full">
+                {/* Header */}
+                <div className="flex items-center justify-between pb-2 border-b border-slate-900/60">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4.5 w-4.5 text-indigo-400" />
+                    <h3 className="text-xs uppercase font-mono font-bold text-slate-400 tracking-wider">
+                      Swarm Agent Reviews
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-500">
+                    Select a card to inspect agent reviews
+                  </span>
+                </div>
 
-            {/* Compiled Executive Memo */}
-            <div className="w-full">
-              <ExecutiveMemo />
-            </div>
+                {/* Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4.5">
+                  {executives.map((exec: any) => (
+                    <ExecutiveCard
+                      key={exec.id}
+                      name={exec.name}
+                      icon={exec.avatar}
+                      status={exec.status}
+                      vote={exec.vote}
+                      confidence={exec.confidence}
+                      summary={exec.summary}
+                      isSelected={selectedExecutiveId === exec.id}
+                      onSelect={() => setSelectedExecutiveId(exec.id)}
+                    />
+                  ))}
+                </div>
+
+                {/* Agent Detail Panel */}
+                <AnimatePresence mode="wait">
+                  {selectedExec && (
+                    <motion.div 
+                      key={selectedExec.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="rounded-3xl border border-slate-900 bg-glass-intense p-6 relative overflow-hidden flex flex-col gap-4 mt-2"
+                    >
+                      <div className="absolute top-0 right-0 h-32 w-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
+                      
+                      <div className="flex items-center justify-between border-b border-slate-900 pb-4">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{selectedExec.avatar}</span>
+                          <div>
+                            <h4 className="text-sm font-bold text-white leading-tight">{selectedExec.name}</h4>
+                            <span className="text-[10px] font-mono text-slate-500">{selectedExec.role}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                          <div className="flex flex-col items-end">
+                            <span className="text-[9px] uppercase font-mono text-slate-500">Vote</span>
+                            <span className={`text-xs font-bold uppercase font-mono ${
+                              selectedExec.vote.toUpperCase() === "YES" ? "text-emerald-400" : selectedExec.vote.toUpperCase() === "NO" ? "text-rose-400" : "text-amber-400"
+                            }`}>{selectedExec.vote}</span>
+                          </div>
+                          <div className="flex flex-col items-end border-l border-slate-900 pl-4">
+                            <span className="text-[9px] uppercase font-mono text-slate-500">Confidence</span>
+                            <span className="text-xs font-bold text-indigo-400 font-mono">{selectedExec.confidence}%</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <span className="text-[9px] uppercase font-mono text-slate-500 font-bold tracking-wider">Detailed Agent Insights:</span>
+                        <p className="text-xs text-slate-300 leading-relaxed font-sans bg-slate-950/40 p-4 rounded-xl border border-slate-900/60 whitespace-pre-wrap">
+                          {selectedExec.summary}
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
 
           </div>
 

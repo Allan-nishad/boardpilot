@@ -1,11 +1,67 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle2, XCircle, AlertCircle, Scale, Award, ShieldCheck } from "lucide-react";
 import { MOCK_EXECUTIVES } from "@/lib/mockData";
 
 export default function VotingMatrix() {
+  const [voters, setVoters] = useState<any[]>(MOCK_EXECUTIVES);
+  const [verdictText, setVerdictText] = useState("PASSED (5 YES • 1 NO • 1 COND • 1 FLGD)");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedResponse = window.localStorage.getItem("boardpilot_api_response");
+      if (savedResponse) {
+        try {
+          const apiData = JSON.parse(savedResponse);
+          
+          // Map agents to voters structure
+          const mappedVoters = apiData.agents.map((agent: any) => {
+            let avatar = "💼";
+            if (agent.role === "CFO") avatar = "📈";
+            else if (agent.role === "CTO") avatar = "🤖";
+            else if (agent.role === "Marketing") avatar = "🎯";
+            else if (agent.role === "Risk") avatar = "🛡️";
+            else if (agent.role === "Blind Spot") avatar = "🔍";
+
+            return {
+              id: agent.role,
+              name: agent.name || `${agent.role} Agent`,
+              role: `${agent.role} Agent`,
+              avatar: avatar,
+              vote: agent.vote || "Yes",
+              confidence: agent.confidence || 85
+            };
+          });
+
+          // Ensure CEO node is present
+          if (!mappedVoters.some((v: any) => v.id === "CEO")) {
+            mappedVoters.unshift({
+              id: "CEO",
+              name: "Sarah Jenkins",
+              role: "CEO Swarm",
+              avatar: "💼",
+              vote: "Yes",
+              confidence: 95
+            });
+          }
+
+          setVoters(mappedVoters);
+
+          // Calculate vote tallies
+          const yesCount = mappedVoters.filter((v: any) => v.vote.toUpperCase() === "YES").length;
+          const noCount = mappedVoters.filter((v: any) => v.vote.toUpperCase() === "NO").length;
+          const condCount = mappedVoters.filter((v: any) => v.vote.toUpperCase() === "CONDITIONAL" || v.vote.toUpperCase() === "COND").length;
+          const flaggedCount = mappedVoters.filter((v: any) => v.vote.toUpperCase() === "FLAGGED").length;
+
+          setVerdictText(`PASSED (${yesCount} YES • ${noCount} NO ${condCount > 0 ? `• ${condCount} COND` : ''}${flaggedCount > 0 ? `• ${flaggedCount} FLGD` : ''})`);
+        } catch (e) {
+          console.error("Failed to parse boardpilot_api_response in matrix", e);
+        }
+      }
+    }
+  }, []);
   
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -36,6 +92,13 @@ export default function VotingMatrix() {
         <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase py-1 px-3.5 rounded-full border bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-sm shadow-rose-500/5">
           <XCircle className="h-3 w-3" />
           NO
+        </span>
+      );
+    } else if (norm === "flagged") {
+      return (
+        <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase py-1 px-3.5 rounded-full border bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-sm shadow-indigo-500/5">
+          <AlertCircle className="h-3 w-3" />
+          FLAGGED
         </span>
       );
     } else {
@@ -96,7 +159,7 @@ export default function VotingMatrix() {
           <span className="text-[9px] font-mono text-slate-500 uppercase">Board Verdict:</span>
           <span className="text-[10px] font-mono font-black bg-emerald-500/10 text-emerald-400 py-1 px-3 border border-emerald-500/20 rounded-lg flex items-center gap-1.5 uppercase shadow">
             <Award className="h-3.5 w-3.5 text-emerald-400" />
-            PASSED (5 YES • 1 NO • 1 COND • 1 FLGD)
+            {verdictText}
           </span>
         </div>
       </div>
@@ -118,7 +181,7 @@ export default function VotingMatrix() {
           animate="show"
           className="flex flex-col mt-2"
         >
-          {MOCK_EXECUTIVES.map((voter) => (
+          {voters.map((voter) => (
             <motion.div
               key={voter.id}
               variants={rowVariants}
