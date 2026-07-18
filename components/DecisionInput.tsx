@@ -214,8 +214,8 @@ export default function DecisionInput() {
     }
 
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const response = await fetch(`${apiBase}/api/boardroom`, {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const response = await fetch(`${baseUrl}/api/boardroom`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
