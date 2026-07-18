@@ -1,7 +1,6 @@
 "use client";
 
-import { motion } from "react";
-import { motion as motionElement } from "framer-motion";
+import { motion } from "framer-motion";
 import { 
   FileText, 
   TrendingUp, 
@@ -105,7 +104,7 @@ export default function ExecutiveTimeline() {
       </div>
 
       {/* Steps Pipeline */}
-      <motionElement.div
+      <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="show"
@@ -131,7 +130,7 @@ export default function ExecutiveTimeline() {
             <div key={step.id} className="flex flex-col">
               
               {/* Timeline Card */}
-              <motionElement.div
+              <motion.div
                 variants={cardVariants}
                 className={`rounded-2xl border p-4.5 flex gap-3.5 items-start ${borderColors} transition-all duration-200`}
               >
@@ -140,9 +139,9 @@ export default function ExecutiveTimeline() {
                   isCompleted
                     ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                     : isWarning
-                    ? "bg-rose-500/10 border-rose-500/20 text-rose-400"
+                    ? "bg-rose-500/10 border-rose-500/20 text-rose-450"
                     : isActive
-                    ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400"
+                    ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-455"
                     : "bg-slate-900 border-slate-800 text-slate-550"
                 }`}>
                   <IconComponent className="h-4.5 w-4.5" />
@@ -166,22 +165,22 @@ export default function ExecutiveTimeline() {
                     </span>
                   )}
                 </div>
-              </motionElement.div>
+              </motion.div>
 
               {/* Pulsing down connector arrow between steps */}
               {idx < MOCK_PIPELINE_STEPS.length - 1 && (
-                <motionElement.div
+                <motion.div
                   variants={arrowVariants}
                   className="py-1.5 flex items-center justify-center text-indigo-500/50"
                 >
                   <ArrowDown className="h-4.5 w-4.5" />
-                </motionElement.div>
+                </motion.div>
               )}
 
             </div>
           );
         })}
-      </motionElement.div>
+      </motion.div>
 
     </div>
   );
